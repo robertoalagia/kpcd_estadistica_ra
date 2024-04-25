@@ -291,26 +291,36 @@ Crearemos una función tal que le pasemos un apartamento con los siguientes dato
 y nos devuelva los 5 más similares de:
 
 ```{r}
-ap_matrix <- matrix(df_madrid_clean)
-pr_ap<-prcomp(df_madrid_clean,center = TRUE, scale. = TRUE)
+ap_matrix <- model.matrix(~Accommodates+ Bathrooms+ Bedrooms+ Beds+ Price+ Guests.Included+ Extra.People+ Review.Scores.Rating+ Latitude+ Longitude+ Square.Meters, data = df_madrid_clean)
+pr_ap<-prcomp(ap_matrix,center = TRUE)
+summary(pr_ap)
 ```
 
 ```{r}
-buscar_pisos_similares <- function(datos, Accommodates, Bathrooms, Bedrooms, Beds, Price, Guests.Included, Extra.People, Review.Scores.Rating, Latitude, Longitude, Square.Meters) {
-  # Calcular la distancia euclidiana entre el piso dado y todos los pisos en el conjunto de datos
-  distancias <- rowSums((t_ap[rep(1, times = nrow(pr_ap$x)), ]-pr_ap$x)^2)
+number_of_pca_components<-3
+
+orig_ap <- model.matrix(~Accommodates+ Bathrooms+ Bedrooms+ Beds+ Price+ Guests.Included+ Extra.People+ Review.Scores.Rating+ Latitude+ Longitude+ Square.Meters, data = data.frame(Accommodates=3 , Bathrooms= 2, Bedrooms= 3, Beds= 3, Price= 120, Guests.Included= 3, Extra.People= 25, Review.Scores.Rating= 80, Latitude= 40.45529, Longitude= -3.701512, Square.Meters= 60))
+```
+
+```{r}
+busqueda_pisos<-function(pca_result=pr_ap,data=df_madrid_clean,pca_components= number_of_pca_components,apartamento=orig_ap){
   
-  # Ordenar los pisos según la distancia y seleccionar los 5 más cercanos
-  pisos_similares <- datos[order(distancias), ][1:5, ]
-  
-  # Devolver los 5 pisos más similares
-  return(pisos_similares)
+    t_ap<-predict(pca_result,newdata= apartamento)
+    t_ap<-matrix(t_ap[1:pca_components],nrow=1) 
+    
+    Apc<-pca_result$x[,1:pca_components]
+    dist<-rep(NA,nrow(Apc))
+      for (i in 1:nrow(Apc)){
+        dist[i]<-sum((t_ap-Apc[i,])^2)
+      }
+    pisos_similares <- data[order(dist), ][1:5, ]
+    return(pisos_similares)
 }
 ```
 
 ```{r}
-busqueda <- buscar_pisos_similares(df_madrid_clean,5,2,3,3,120,3,25,80,40.41682,-3.708097,60)
-
+busqueda <- busqueda_pisos()
+print(busqueda)
 ```
 
 ------------------------------------------------------------------------
